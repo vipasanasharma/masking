@@ -1,0 +1,46 @@
+import re
+import json
+from faker import Faker
+from docx import Document
+
+# Initialize Faker
+fake = Faker()
+
+# Path to the document
+input_path = r"C:\Users\HP\Downloads\termsheet.docx"
+output_path = r"C:\Users\HP\Downloads\masked_termsheet.docx"
+json_path = r"C:\Users\HP\Downloads\date_mappings.json"
+
+# Load the document
+doc = Document(input_path)
+
+# Regex pattern to identify dates (handles different formats)
+date_pattern = r'\b(?:\d{1,2}[-/th|st|nd|rd ]?\s(?:January|February|March|April|May|June|July|August|September|October|November|December)[ -/,\s]*\d{2,4}|\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|\d{4}-\d{2}-\d{2})\b'
+
+# Dictionary to hold original and masked dates
+date_mappings = {}
+
+# Function to replace dates
+def replace_dates(text):
+    def mask_date(match):
+        original_date = match.group(0)
+        masked_date = fake.date_between(start_date='-5y', end_date='today').strftime('%d-%m-%Y')
+        date_mappings[original_date] = masked_date
+        return masked_date
+    
+    return re.sub(date_pattern, mask_date, text)
+
+# Iterate over each paragraph and run the replacement
+for para in doc.paragraphs:
+    if re.search(date_pattern, para.text):
+        para.text = replace_dates(para.text)
+
+# Save the modified document
+doc.save(output_path)
+
+# Save the date mappings to a JSON file
+with open(json_path, 'w') as json_file:
+    json.dump(date_mappings, json_file, indent=4)
+
+print(f"Masked document saved to: {output_path}")
+print(f"Date mappings saved to: {json_path}")
