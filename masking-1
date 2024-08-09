@@ -1,46 +1,56 @@
 import re
 import json
 from faker import Faker
-from docx import Document
+from datetime import datetime
 
 # Initialize Faker
 fake = Faker()
 
-# Path to the document
-input_path = r"C:\Users\HP\Downloads\termsheet.docx"
-output_path = r"C:\Users\HP\Downloads\masked_termsheet.docx"
-json_path = r"C:\Users\HP\Downloads\date_mappings.json"
+# Path to your termsheet document
+input_file = 'termsheet.txt'  # Update with your actual file path
+output_file = 'masked_termsheet.txt'
+mappings_file = 'mappings.json'
 
-# Load the document
-doc = Document(input_path)
+# Read the content of the termsheet
+with open(input_file, 'r') as file:
+    content = file.read()
 
-# Regex pattern to identify dates (handles different formats)
-date_pattern = r'\b(?:\d{1,2}[-/th|st|nd|rd ]?\s(?:January|February|March|April|May|June|July|August|September|October|November|December)[ -/,\s]*\d{2,4}|\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|\d{4}-\d{2}-\d{2})\b'
+# Define regex patterns to identify dates and the term "Nomura"
+date_pattern = r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b'
+nomura_pattern = r'\bNomura\b'
 
-# Dictionary to hold original and masked dates
-date_mappings = {}
+# Initialize a dictionary to store mappings
+mappings = {'dates': {}, 'nomura': {}}
 
-# Function to replace dates
-def replace_dates(text):
-    def mask_date(match):
-        original_date = match.group(0)
-        masked_date = fake.date_between(start_date='-5y', end_date='today').strftime('%d-%m-%Y')
-        date_mappings[original_date] = masked_date
-        return masked_date
-    
-    return re.sub(date_pattern, mask_date, text)
+# Mask Dates
+def mask_dates(match):
+    original_date = match.group(0)
+    # Generate a fake date
+    fake_date = fake.date_between(start_date='-5y', end_date='today').strftime('%m/%d/%Y')
+    # Store the mapping
+    mappings['dates'][original_date] = fake_date
+    return fake_date
 
-# Iterate over each paragraph and run the replacement
-for para in doc.paragraphs:
-    if re.search(date_pattern, para.text):
-        para.text = replace_dates(para.text)
+# Mask the term "Nomura"
+def mask_nomura(match):
+    original_term = match.group(0)
+    # Generate a fake company name
+    fake_term = fake.company()
+    # Store the mapping
+    mappings['nomura'][original_term] = fake_term
+    return fake_term
 
-# Save the modified document
-doc.save(output_path)
+# Perform the replacements
+masked_content = re.sub(date_pattern, mask_dates, content)
+masked_content = re.sub(nomura_pattern, mask_nomura, masked_content)
 
-# Save the date mappings to a JSON file
-with open(json_path, 'w') as json_file:
-    json.dump(date_mappings, json_file, indent=4)
+# Write the masked content to a new file
+with open(output_file, 'w') as file:
+    file.write(masked_content)
 
-print(f"Masked document saved to: {output_path}")
-print(f"Date mappings saved to: {json_path}")
+# Save the mappings to a JSON file
+with open(mappings_file, 'w') as file:
+    json.dump(mappings, file, indent=4)
+
+print(f'Masked file saved as {output_file}')
+print(f'Mappings saved as {mappings_file}')
