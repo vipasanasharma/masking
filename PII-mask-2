@@ -1,0 +1,63 @@
+import re
+from datetime import datetime
+
+# Define a function to replace numbers based on the given mapping
+def replace_numbers(number):
+    mapping = {'1': '9', '2': '8', '3': '7', '4': '6', '5': '0', 
+               '6': '4', '7': '3', '8': '2', '9': '1', '0': '5'}
+    return ''.join([mapping.get(digit, digit) for digit in number])
+
+# Define a function to replace months based on the given mapping
+def replace_months(month):
+    month_mapping = {
+        'jan': 'dec', 'january': 'december', 'feb': 'nov', 'february': 'november', 
+        'mar': 'oct', 'march': 'october', 'apr': 'sep', 'april': 'september', 
+        'may': 'aug', 'jun': 'jul', 'june': 'july', 'jul': 'jun', 
+        'july': 'june', 'aug': 'may', 'august': 'may', 'sep': 'apr', 
+        'september': 'april', 'oct': 'mar', 'october': 'march', 
+        'nov': 'feb', 'november': 'february', 'dec': 'jan', 'december': 'january'
+    }
+    return month_mapping.get(month.lower(), month)
+
+# Function to process the termsheet
+def process_termsheet(input_file, output_file, mappings_file):
+    with open(input_file, 'r') as file:
+        content = file.read()
+    
+    # Extract all occurrences of 'Nomura'
+    nomura_occurrences = re.findall(r'Nomura', content)
+    
+    # Extract all numbers
+    numbers = re.findall(r'\b\d+\b', content)
+    
+    # Extract all month names
+    months_pattern = r'\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\b'
+    months = re.findall(months_pattern, content, re.IGNORECASE)
+    
+    # Replace 'Nomura' with 'abc'
+    content = content.replace('Nomura', 'abc')
+    
+    # Replace numbers
+    for number in numbers:
+        content = content.replace(number, replace_numbers(number))
+    
+    # Replace months
+    for month in months:
+        content = content.replace(month, replace_months(month))
+    
+    # Save the mappings to the mappings file
+    with open(mappings_file, 'w') as file:
+        file.write("Replaced 'Nomura' with 'abc'\n")
+        file.write("Number mappings:\n")
+        for number in numbers:
+            file.write(f"{number} -> {replace_numbers(number)}\n")
+        file.write("Month mappings:\n")
+        for month in months:
+            file.write(f"{month} -> {replace_months(month)}\n")
+    
+    # Save the modified content to the output file
+    with open(output_file, 'w') as file:
+        file.write(content)
+
+# Example usage
+process_termsheet('termsheet.txt', 'modified_termsheet.txt', 'mappings.txt')
